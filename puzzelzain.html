@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Puzzle Game</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+h1 {
+    color: #ffd166;
+    margin-bottom: 10px;
+}
+
+.info {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px 0;
+    background: #ffffff18;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+.info div {
+    font-size: 14px;
+}
+
+.info span {
+    display: block;
+    font-size: 22px;
+    color: #ffd166;
+    margin-top: 5px;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+.card {
+    height: 90px;
+    background: #ffffff;
+    color: #243b55;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 35px;
+    cursor: pointer;
+    transition: 0.3s;
+    user-select: none;
+}
+
+.card:hover {
+    transform: scale(1.04);
+}
+
+.card.hidden {
+    background: #4f6d9a;
+    color: white;
+}
+
+.card.matched {
+    background: #06d6a0;
+    cursor: default;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 10px;
+    background: #ffd166;
+    color: #243b55;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #ffb703;
+}
+
+#message {
+    margin-top: 15px;
+    font-size: 18px;
+    color: #06d6a0;
+    font-weight: bold;
+}
+
+@media (max-width: 400px) {
+    .card {
+        height: 75px;
+        font-size: 28px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🧠 Memory Puzzle(by zain javas)</h1>
+    <p>Temukan semua pasangan kartu yang sama!</p>
+
+    <div class="info">
+        <div>
+            Langkah
+            <span id="moves">0</span>
+        </div>
+
+        <div>
+            Waktu
+            <span id="timer">0</span>
+        </div>
+
+        <div>
+            Pasangan
+            <span id="pairs">0/8</span>
+        </div>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div id="message"></div>
+
+    <button onclick="restartGame()">
+        🔄 Mulai Ulang
+    </button>
+
+</div>
+
+<script>
+const symbols = [
+    "💷", "💶", "⚒️", "🛠",
+    "⛰️", "🏔", "⏳", "⌛"
+];
+
+let cards = [];
+let firstCard = null;
+let secondCard = null;
+let lockBoard = false;
+
+let moves = 0;
+let matchedPairs = 0;
+let seconds = 0;
+let timerInterval = null;
+let gameStarted = false;
+
+const board = document.getElementById("board");
+
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function createBoard() {
+    board.innerHTML = "";
+
+    cards = shuffle([...symbols, ...symbols]);
+
+    cards.forEach((symbol, index) => {
+        const card = document.createElement("div");
+
+        card.className = "card hidden";
+        card.dataset.symbol = symbol;
+        card.dataset.index = index;
+        card.textContent = "?";
+
+        card.addEventListener("click", () => {
+            flipCard(card);
+        });
+
+        board.appendChild(card);
+    });
+}
+
+function startTimer() {
+    if (gameStarted) return;
+
+    gameStarted = true;
+
+    timerInterval = setInterval(() => {
+        seconds++;
+        document.getElementById("timer").textContent = seconds;
+    }, 1000);
+}
+
+function flipCard(card) {
+    if (lockBoard) return;
+    if (!card.classList.contains("hidden")) return;
+
+    startTimer();
+
+    card.classList.remove("hidden");
+    card.textContent = card.dataset.symbol;
+
+    if (!firstCard) {
+        firstCard = card;
+        return;
+    }
+
+    secondCard = card;
+    moves++;
+
+    document.getElementById("moves").textContent = moves;
+
+    checkMatch();
+}
+
+function checkMatch() {
+    const isMatch =
+        firstCard.dataset.symbol === secondCard.dataset.symbol;
+
+    if (isMatch) {
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+
+        matchedPairs++;
+
+        document.getElementById("pairs").textContent =
+            matchedPairs + "/8";
+
+        resetTurn();
+
+        if (matchedPairs === 8) {
+            clearInterval(timerInterval);
+
+            document.getElementById("message").textContent =
+                "🎉 Selamat! Kamu berhasil menyelesaikan puzzle!(HOKI😝)";
+        }
+
+    } else {
+        lockBoard = true;
+
+        setTimeout(() => {
+            firstCard.classList.add("hidden");
+            secondCard.classList.add("hidden");
+
+            firstCard.textContent = "?";
+            secondCard.textContent = "?";
+
+            resetTurn();
+        }, 1000);
+    }
+}
+
+function resetTurn() {
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+}
+
+function restartGame() {
+    clearInterval(timerInterval);
+
+    moves = 0;
+    matchedPairs = 0;
+    seconds = 0;
+
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+    gameStarted = false;
+
+    document.getElementById("moves").textContent = "0";
+    document.getElementById("timer").textContent = "0";
+    document.getElementById("pairs").textContent = "0/8";
+    document.getElementById("message").textContent = "";
+
+    createBoard();
+}
+
+// Jalankan game
+createBoard();
+</script>
+
+</body>
+</html>
